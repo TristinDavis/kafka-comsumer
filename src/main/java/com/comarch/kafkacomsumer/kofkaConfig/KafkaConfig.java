@@ -3,6 +3,7 @@ package com.comarch.kafkacomsumer.kofkaConfig;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.ByteArrayDeserializer;
 import org.apache.kafka.common.serialization.StringDeserializer;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.kafka.annotation.EnableKafka;
@@ -20,17 +21,22 @@ import java.util.UUID;
 @EnableKafka
 @Configuration
 public class KafkaConfig {
+    @Value("${spring.kafka.bootstrap-servers}")
+    private String bootstrapServers;
+
+    public Map<String, Object> consumerConfigs(String groupId, String clientId) {
+        Map<String, Object> props = new HashMap<>();
+        props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
+        props.put(ConsumerConfig.GROUP_ID_CONFIG, groupId);
+        props.put(ConsumerConfig.CLIENT_ID_CONFIG, clientId);
+        props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
+        props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
+        return props;
+    }
 
     @Bean
     public ConsumerFactory<String, String> consumerFactory() {
-        Map<String, Object> config = new HashMap<>();
-
-        config.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, "kafka:9092");
-        config.put(ConsumerConfig.GROUP_ID_CONFIG, "group_json");
-        config.put(ConsumerConfig.CLIENT_ID_CONFIG, UUID.randomUUID().toString());
-        config.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
-        config.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
-
+        Map<String, Object> config = consumerConfigs("json_group", UUID.randomUUID().toString());
         return new DefaultKafkaConsumerFactory<>(config);
     }
 
@@ -42,8 +48,6 @@ public class KafkaConfig {
         factory.setMessageConverter(new StringJsonMessageConverter());
         return factory;
     }
-
-
 //    @Bean
 //    public ConsumerFactory<String, String> byteConsumerFactory() {
 //        Map<String, Object> config = new HashMap<>();

@@ -22,8 +22,8 @@ public class KafkaConsumer {
 
     @KafkaListener(id = "id_2", topics = "test", groupId = "group_json",
             containerFactory = "kafkaListenerContainerFactory")
-    public void consumeUser(User message) {
-        System.out.println(message);
+    public void consumeUser(ConsumerRecord message) {
+        System.out.println(message.toString().split("key")[0]);
     }
 
 //    @KafkaListener(topics = "test2", groupId = "group_json2",
