@@ -5,7 +5,7 @@
 
     <groupId>com.comarch</groupId>
     <artifactId>kafka-comsumer</artifactId>
-    <version>0.1</version>
+    <version>0.3</version>
     <packaging>jar</packaging>
 
     <name>kafka-comsumer</name>
