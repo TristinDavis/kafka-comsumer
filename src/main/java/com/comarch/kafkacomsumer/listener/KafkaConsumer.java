@@ -1,5 +1,6 @@
 package com.comarch.kafkacomsumer.listener;
 
+import com.comarch.kafkacomsumer.ErrorHandler.KafkaListenerErrorHandler;
 import com.comarch.kafkacomsumer.model.Car;
 import com.comarch.kafkacomsumer.model.Counter;
 import com.comarch.kafkacomsumer.model.User;
@@ -11,11 +12,14 @@ import org.springframework.kafka.event.ListenerContainerIdleEvent;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
+import java.security.GeneralSecurityException;
 import java.util.Arrays;
+import java.util.List;
 
 @Service
 public class KafkaConsumer {
     private static final ObjectMapper mapper = new ObjectMapper();
+    private static int countBatch = 0;
 
 //    @KafkaListener(topics = "test", groupId = "group_json",
 //            containerFactory = "byteKafkaListenerFactory")
@@ -28,6 +32,23 @@ public class KafkaConsumer {
     public void consumeUser(ConsumerRecord message) {
         System.out.println(Counter.COUNT + ": " + message.toString().split("key")[0]);
         Counter.COUNT++;
+    }
+
+    @KafkaListener(id = "id3", topics = "test3", groupId = "group_json",
+            containerFactory = "batchKafkaListenerContainerFactory")
+    public void consumeUsers(List<ConsumerRecord<?, ?>> messages) throws GeneralSecurityException {
+        for (ConsumerRecord<?, ?> message : messages) {
+            countBatch++;
+            if (countBatch % 3 == 0) {
+                System.out.println("Throwing exception for countBatch " + countBatch + " msg: " + message == null ? "" : message);
+                throw new GeneralSecurityException();
+            }
+            else {
+                System.out.println(message);
+            }
+        }
+        System.out.println("End of Batch");
+        countBatch = 1;
     }
 
     @EventListener(condition = "event.listenerId.equals('id2')")
