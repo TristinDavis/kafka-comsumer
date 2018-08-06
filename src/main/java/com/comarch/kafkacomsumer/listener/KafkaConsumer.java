@@ -9,6 +9,8 @@ import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.springframework.context.event.EventListener;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.event.ListenerContainerIdleEvent;
+import org.springframework.kafka.support.KafkaHeaders;
+import org.springframework.messaging.handler.annotation.Header;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -35,19 +37,24 @@ public class KafkaConsumer {
     }
 
     @KafkaListener(id = "id3", topics = "test3", groupId = "group_json",
-            containerFactory = "batchKafkaListenerContainerFactory")
-    public void consumeUsers(List<ConsumerRecord<?, ?>> messages) throws GeneralSecurityException {
-        for (ConsumerRecord<?, ?> message : messages) {
+            containerFactory = "batchKafkaListenerContainerFactory", errorHandler = "listen10ErrorHandler")
+    public void consumeUsers(List<User> messages,
+                             @Header(KafkaHeaders.RECEIVED_MESSAGE_KEY) List<Integer> keys,
+                             @Header(KafkaHeaders.RECEIVED_PARTITION_ID) List<Integer> partitions,
+                             @Header(KafkaHeaders.RECEIVED_TOPIC) List<String> topics,
+                             @Header(KafkaHeaders.OFFSET) List<Long> offsets) throws GeneralSecurityException {
+        for (User message: messages) {
             countBatch++;
             if (countBatch % 3 == 0) {
-                System.out.println("Throwing exception for countBatch " + countBatch + " msg: " + message == null ? "" : message);
+                System.out.println("Throwing exception for countBatch " + countBatch + " msg: " + offsets.get(countBatch-1) + " " + (message == null ? "" : message));
                 throw new GeneralSecurityException();
             }
             else {
-                System.out.println(message);
+                System.out.println(offsets.get(countBatch-1) + " " + message);
             }
         }
         System.out.println("End of Batch");
+        System.exit(0);
         countBatch = 1;
     }
 

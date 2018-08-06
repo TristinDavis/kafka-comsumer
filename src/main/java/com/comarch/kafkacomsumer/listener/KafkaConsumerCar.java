@@ -22,9 +22,10 @@ public class KafkaConsumerCar {
     @KafkaListener(id = "id1", topics = "test2", groupId = "group_json",
             containerFactory = "kafkaListenerContainerFactory")
     public void consumeUser(ConsumerRecord message) throws IllegalArgumentException {
-        System.out.println(Counter.COUNT + ": " + message.toString().split("key")[0]);
         Counter.COUNT++;
-        throw new IllegalArgumentException();
+        if (Counter.COUNT % 5 == 0)
+            throw new IllegalArgumentException();
+        System.out.println(Counter.COUNT + ": " + message.toString().split("key")[0]);
     }
 
     @EventListener(condition = "event.listenerId.equals('id1')")

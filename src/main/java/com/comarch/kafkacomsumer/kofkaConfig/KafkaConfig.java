@@ -17,6 +17,7 @@ import org.springframework.kafka.listener.AbstractMessageListenerContainer.AckMo
 import org.springframework.kafka.listener.ConsumerAwareListenerErrorHandler;
 import org.springframework.kafka.listener.ContainerAwareBatchErrorHandler;
 import org.springframework.kafka.listener.ErrorHandler;
+import org.springframework.kafka.listener.SeekToCurrentBatchErrorHandler;
 import org.springframework.kafka.support.KafkaHeaders;
 import org.springframework.kafka.support.converter.BatchMessagingMessageConverter;
 import org.springframework.kafka.support.converter.StringJsonMessageConverter;
@@ -66,8 +67,10 @@ public class KafkaConfig {
         factory.setConsumerFactory(consumerFactory());
         factory.setBatchListener(true);
         factory.setMessageConverter(new BatchMessagingMessageConverter(new StringJsonMessageConverter()));
-        factory.getContainerProperties().setBatchErrorHandler(dlqBatchErrorHandler());
+//        factory.getContainerProperties().setErrorHandler(dlqErrorHandler());
+//        factory.getContainerProperties().setBatchErrorHandler(dlqBatchErrorHandler());
         factory.getContainerProperties().setAckMode(AckMode.BATCH);
+//        factory.getContainerProperties().setAckOnError(false);
         return factory;
     }
 
@@ -82,6 +85,27 @@ public class KafkaConfig {
         config.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
 
         return new DefaultKafkaProducerFactory<>(config);
+    }
+
+    @Bean
+    public ConsumerAwareListenerErrorHandler listen10ErrorHandler() {
+        return (m, e, c) -> {
+            MessageHeaders headers = m.getHeaders();
+            List<String> topics = headers.get(KafkaHeaders.RECEIVED_TOPIC, List.class);
+            List<Integer> partitions = headers.get(KafkaHeaders.RECEIVED_PARTITION_ID, List.class);
+            List<Long> offsets = headers.get(KafkaHeaders.OFFSET, List.class);
+            Map<TopicPartition, Long> offsetsToReset = new HashMap<>();
+            for (int i = 0; i < topics.size(); i++) {
+                int index = i;
+                offsetsToReset.compute(new TopicPartition(topics.get(i), partitions.get(i)),
+                        (k, v) -> v == null ? offsets.get(index) : Math.min(v, offsets.get(index)));
+            }
+            offsetsToReset.forEach((k, v) -> {
+                c.seek(k, v);
+                System.out.println("Handler " + k + " " + v);
+            });
+            throw e;
+        };
     }
 
     @Bean
